@@ -1,13 +1,25 @@
+require('dotenv').config();
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const Perplexity = require('@perplexity-ai/perplexity_ai');
 
 admin.initializeApp();
 const db = admin.firestore();
 
 // CORS middleware
 const cors = require('cors')({origin: true});
+
+// Initialize Perplexity client
+function getPerplexityClient() {
+  const apiKey = process.env.PERPLEXITY_API_KEY || functions.config().perplexity?.api_key;
+  if (!apiKey) {
+    throw new Error('PERPLEXITY_API_KEY not configured');
+  }
+  return new Perplexity({ apiKey });
+}
 
 /**
  * Analyze News - Main Cloud Function
@@ -124,40 +136,25 @@ async function extractSeed(input, type) {
  * Use Perplexity API to extract named entities
  */
 async function extractEntities(headline) {
-  const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-
-  if (!PERPLEXITY_API_KEY) {
-    console.warn('PERPLEXITY_API_KEY not set, using basic extraction');
-    // Fallback: simple word extraction
-    return headline.split(' ').filter(w => w.length > 3).slice(0, 5);
-  }
-
   try {
-    const response = await axios.post(
-      'https://api.perplexity.ai/chat/completions',
-      {
-        model: 'llama-3.1-sonar-small-128k-online',
-        messages: [
-          {
-            role: 'system',
-            content: 'Extract key named entities (people, organizations, locations, events) from the headline. Return as JSON array of strings.'
-          },
-          {
-            role: 'user',
-            content: headline
-          }
-        ],
-        max_tokens: 200
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    const client = getPerplexityClient();
 
-    const content = response.data.choices[0].message.content;
+    const completion = await client.chat.completions.create({
+      model: 'sonar',
+      messages: [
+        {
+          role: 'system',
+          content: 'Extract key named entities (people, organizations, locations, events) from the headline. Return as JSON array of strings.'
+        },
+        {
+          role: 'user',
+          content: headline
+        }
+      ],
+      max_tokens: 200
+    });
+
+    const content = completion.choices[0].message.content;
 
     // Try to parse as JSON
     try {
@@ -168,6 +165,7 @@ async function extractEntities(headline) {
     }
   } catch (error) {
     console.error('Entity extraction error:', error.message);
+    // Fallback: simple word extraction
     return headline.split(' ').filter(w => w.length > 3).slice(0, 5);
   }
 }
@@ -176,43 +174,30 @@ async function extractEntities(headline) {
  * Retrieve diverse articles using Perplexity API
  */
 async function retrieveArticles(headline, entities) {
-  const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-
-  if (!PERPLEXITY_API_KEY) {
-    throw new Error('PERPLEXITY_API_KEY environment variable not set');
-  }
+  const client = getPerplexityClient();
 
   // Build search query
   const query = `${headline} ${entities.slice(0, 3).join(' ')} news coverage`;
 
   try {
-    const response = await axios.post(
-      'https://api.perplexity.ai/chat/completions',
-      {
-        model: 'llama-3.1-sonar-large-128k-online',
-        messages: [
-          {
-            role: 'system',
-            content: 'Find diverse news coverage of this story from multiple outlets (mainstream, international, regional). Return citations with article titles, URLs, and brief summaries. Avoid wire service duplicates.'
-          },
-          {
-            role: 'user',
-            content: query
-          }
-        ],
-        max_tokens: 2000,
-        return_citations: true
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json'
+    const completion = await client.chat.completions.create({
+      model: 'sonar',
+      messages: [
+        {
+          role: 'system',
+          content: 'Find diverse news coverage of this story from multiple outlets (mainstream, international, regional). Return citations with article titles, URLs, and brief summaries. Avoid wire service duplicates.'
+        },
+        {
+          role: 'user',
+          content: query
         }
-      }
-    );
+      ],
+      max_tokens: 2000,
+      return_citations: true
+    });
 
-    const citations = response.data.citations || [];
-    const content = response.data.choices[0].message.content;
+    const citations = completion.citations || [];
+    const content = completion.choices[0].message.content;
 
     // Parse articles from citations
     const articles = citations.slice(0, 10).map((url, idx) => ({
@@ -288,37 +273,27 @@ function diversifyArticles(articles) {
  * Extract claims from articles using Perplexity
  */
 async function extractClaims(articles) {
-  const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-
+  const client = getPerplexityClient();
   const allClaims = [];
 
   for (const article of articles) {
     try {
-      const response = await axios.post(
-        'https://api.perplexity.ai/chat/completions',
-        {
-          model: 'llama-3.1-sonar-small-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content: 'Extract atomic, checkable claims from this article. Focus on facts, numbers, dates, and statements. Return as JSON array: [{"claim": "...", "entities": [...], "numbers": [...]}]'
-            },
-            {
-              role: 'user',
-              content: `Title: ${article.title}\nSnippet: ${article.snippet}`
-            }
-          ],
-          max_tokens: 500
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-            'Content-Type': 'application/json'
+      const completion = await client.chat.completions.create({
+        model: 'sonar',
+        messages: [
+          {
+            role: 'system',
+            content: 'Extract atomic, checkable claims from this article. Focus on facts, numbers, dates, and statements. Return as JSON array: [{"claim": "...", "entities": [...], "numbers": [...]}]'
+          },
+          {
+            role: 'user',
+            content: `Title: ${article.title}\nSnippet: ${article.snippet}`
           }
-        }
-      );
+        ],
+        max_tokens: 500
+      });
 
-      const content = response.data.choices[0].message.content;
+      const content = completion.choices[0].message.content;
       let claims = [];
 
       try {
@@ -398,8 +373,7 @@ function textSimilarity(a, b) {
  * Analyze stance for each claim across outlets
  */
 async function analyzeStances(clusters, articles) {
-  const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-
+  const client = getPerplexityClient();
   const analyzed = [];
 
   for (const cluster of clusters) {
@@ -407,31 +381,22 @@ async function analyzeStances(clusters, articles) {
 
     for (const article of articles) {
       try {
-        const response = await axios.post(
-          'https://api.perplexity.ai/chat/completions',
-          {
-            model: 'llama-3.1-sonar-small-128k-online',
-            messages: [
-              {
-                role: 'system',
-                content: 'Given this claim and article snippet, determine stance: supports, refutes, neutral, or not_mentioned. Also extract the best supporting quote. Return JSON: {"stance": "...", "quote": "...", "confidence": 0.0-1.0}'
-              },
-              {
-                role: 'user',
-                content: `Claim: ${cluster.canonical}\n\nArticle: ${article.title}\n${article.snippet}`
-              }
-            ],
-            max_tokens: 200
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-              'Content-Type': 'application/json'
+        const completion = await client.chat.completions.create({
+          model: 'sonar',
+          messages: [
+            {
+              role: 'system',
+              content: 'Given this claim and article snippet, determine stance: supports, refutes, neutral, or not_mentioned. Also extract the best supporting quote. Return JSON: {"stance": "...", "quote": "...", "confidence": 0.0-1.0}'
+            },
+            {
+              role: 'user',
+              content: `Claim: ${cluster.canonical}\n\nArticle: ${article.title}\n${article.snippet}`
             }
-          }
-        );
+          ],
+          max_tokens: 200
+        });
 
-        const content = response.data.choices[0].message.content;
+        const content = completion.choices[0].message.content;
         let stanceData = { stance: 'neutral', quote: '', confidence: 0.5 };
 
         try {
