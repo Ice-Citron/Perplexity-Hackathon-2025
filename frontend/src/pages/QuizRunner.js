@@ -189,9 +189,9 @@ function QuizRunner() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#fff2dc'}}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading quiz...</p>
         </div>
       </div>
@@ -200,20 +200,20 @@ function QuizRunner() {
 
   if (submitting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-start justify-center pt-20 p-6">
+      <div className="min-h-screen flex items-start justify-center pt-20 p-6" style={{backgroundColor: '#fff2dc'}}>
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full">
           <div className="text-center">
             {/* Animated thinking icon */}
             <div className="mb-6 relative inline-block">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-700 to-emerald-800 rounded-full flex items-center justify-center">
                 <svg className="w-10 h-10 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
               <div className="absolute -top-1 -right-1">
                 <span className="flex h-4 w-4">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-600"></span>
                 </span>
               </div>
             </div>
@@ -231,7 +231,7 @@ function QuizRunner() {
             </div>
 
             {/* Philosophical quote */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-l-4 border-blue-500">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-l-4 border-emerald-700">
               <p className="text-gray-700 italic text-lg mb-3">
                 "{randomQuote.quote}"
               </p>
@@ -242,9 +242,9 @@ function QuizRunner() {
 
             {/* Loading dots */}
             <div className="mt-6 flex justify-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <div className="w-3 h-3 bg-emerald-700 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-emerald-700 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-emerald-700 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
             </div>
           </div>
         </div>
@@ -254,7 +254,7 @@ function QuizRunner() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#fff2dc'}}>
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
           <div className="text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
@@ -262,7 +262,7 @@ function QuizRunner() {
             <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={() => navigate('/quizzes')}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800"
             >
               Back to Quizzes
             </button>
@@ -276,7 +276,7 @@ function QuizRunner() {
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen" style={{backgroundColor: '#fff2dc'}}>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-4">
@@ -300,7 +300,7 @@ function QuizRunner() {
           {/* Progress bar */}
           <div className="mt-4 bg-gray-200 rounded-full h-2">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-emerald-700 h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
@@ -335,7 +335,7 @@ function QuizRunner() {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-3xl font-bold ${timeLeft <= 2 ? 'text-red-500' : 'text-blue-600'}`}>
+                <span className={`text-3xl font-bold ${timeLeft <= 2 ? 'text-red-500' : 'text-emerald-700'}`}>
                   {timeLeft}
                 </span>
               </div>
@@ -365,19 +365,19 @@ function QuizRunner() {
                   disabled={isDisabled}
                   className={`w-full p-4 text-left rounded-xl border-2 transition-all ${
                     isSelected
-                      ? 'border-blue-600 bg-blue-50 scale-105'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                      ? 'border-emerald-700 bg-white scale-105'
+                      : 'border-gray-200 hover:border-emerald-600 hover:bg-emerald-50'
                   } ${isDisabled && !isSelected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
                       isSelected
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-emerald-700 text-white'
                         : 'bg-gray-100 text-gray-600'
                     }`}>
                       {String.fromCharCode(65 + index)}
                     </div>
-                    <span className={`text-lg ${isSelected ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
+                    <span className={`text-lg ${isSelected ? 'text-emerald-900 font-medium' : 'text-gray-700'}`}>
                       {option}
                     </span>
                   </div>
