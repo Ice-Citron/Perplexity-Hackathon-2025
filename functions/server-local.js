@@ -3,6 +3,12 @@ const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const { generateBalancedArticle, generateQuickSummary } = require('./services/articleGenerator');
+const {
+  getTrendingTopics,
+  generateQuizQuestions,
+  generateQuizSummary,
+  calculateScore
+} = require('./services/quizService');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -270,6 +276,138 @@ app.get('/api/articles/:id', async (req, res) => {
   }
 });
 
+// ====================
+// QUIZ ENDPOINTS
+// ====================
+
+// GET /api/quizzes/trending
+app.get('/api/quizzes/trending', (req, res) => {
+  try {
+    const topics = getTrendingTopics();
+    res.json({ topics });
+  } catch (error) {
+    console.error('Error fetching trending topics:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/quizzes/generate
+app.post('/api/quizzes/generate', async (req, res) => {
+  try {
+    const { topic, numQuestions = 5 } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ error: 'topic is required' });
+    }
+
+    console.log(`🎯 Generating quiz for: ${topic}`);
+
+    const questions = await generateQuizQuestions(topic, numQuestions);
+
+    const quizSession = {
+      topic,
+      questions: questions.map(q => ({
+        question_text: q.question_text,
+        options: q.options,
+        difficulty: q.difficulty || 'medium',
+      })),
+      questionsWithAnswers: questions,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+    };
+
+    const sessionRef = await db.collection('quizSessions').add(quizSession);
+
+    console.log(`✅ Quiz session created: ${sessionRef.id}`);
+
+    res.json({
+      sessionId: sessionRef.id,
+      topic,
+      questions: quizSession.questions,
+      timeLimit: 5
+    });
+
+  } catch (error) {
+    console.error('Error generating quiz:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/quizzes/submit
+app.post('/api/quizzes/submit', async (req, res) => {
+  try {
+    const { sessionId, answers, userId } = req.body;
+
+    if (!sessionId || !answers) {
+      return res.status(400).json({ error: 'sessionId and answers are required' });
+    }
+
+    const sessionDoc = await db.collection('quizSessions').doc(sessionId).get();
+
+    if (!sessionDoc.exists) {
+      return res.status(404).json({ error: 'Quiz session not found' });
+    }
+
+    const sessionData = sessionDoc.data();
+    const scoreData = calculateScore(sessionData.questionsWithAnswers, answers);
+
+    const summary = await generateQuizSummary(
+      sessionData.topic,
+      scoreData.score,
+      scoreData.total
+    );
+
+    const result = {
+      sessionId,
+      topic: sessionData.topic,
+      userId: userId || null,
+      score: scoreData.score,
+      total: scoreData.total,
+      percentage: scoreData.percentage,
+      summary: summary.summary,
+      sources: summary.sources,
+      results: scoreData.results,
+      completedAt: new Date().toISOString()
+    };
+
+    const resultRef = await db.collection('quizResults').add(result);
+
+    res.json({
+      resultId: resultRef.id,
+      ...result
+    });
+
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const { period = 'alltime' } = req.query;
+
+    const leaderboardDoc = await db.collection('leaderboards').doc(period).get();
+
+    if (!leaderboardDoc.exists) {
+      return res.json({ period, top: [] });
+    }
+
+    const data = leaderboardDoc.data();
+
+    res.json({
+      period,
+      top: data.top || [],
+      updatedAt: data.updatedAt
+    });
+
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /health
 app.get('/health', (req, res) => {
   res.json({
@@ -286,5 +424,9 @@ app.listen(PORT, () => {
   console.log(`   POST /api/articles/generate - Generate balanced article`);
   console.log(`   GET  /api/articles - List all articles`);
   console.log(`   GET  /api/articles/:id - Get specific article`);
+  console.log(`   GET  /api/quizzes/trending - Get trending quiz topics`);
+  console.log(`   POST /api/quizzes/generate - Generate quiz questions`);
+  console.log(`   POST /api/quizzes/submit - Submit quiz answers`);
+  console.log(`   GET  /api/leaderboard - Get leaderboard`);
   console.log(`   GET  /health - Health check\n`);
 });

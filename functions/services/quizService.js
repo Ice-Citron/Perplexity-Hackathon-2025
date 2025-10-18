@@ -124,7 +124,7 @@ Provide:
 Keep it concise, friendly, and educational. Format as markdown.`;
 
   const body = {
-    model: 'sonar-deep-research',
+    model: 'sonar-pro',
     messages: [
       {
         role: 'user',
@@ -141,7 +141,7 @@ Keep it concise, friendly, and educational. Format as markdown.`;
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body),
-      timeout: 90000 // 90 second timeout for deep research
+      timeout: 30000 // 30 second timeout
     });
 
     if (!response.ok) {

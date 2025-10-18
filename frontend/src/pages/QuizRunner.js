@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { subscribeToAuthChanges } from '../services/authService';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 const TIME_LIMIT = 5; // seconds per question
@@ -11,6 +12,7 @@ function QuizRunner() {
 
   const topicName = location.state?.topicName || topicId;
 
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sessionId, setSessionId] = useState(null);
@@ -20,6 +22,14 @@ function QuizRunner() {
   const [answers, setAnswers] = useState([]);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [isAnswerLocked, setIsAnswerLocked] = useState(false);
+
+  // Subscribe to auth changes
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Load quiz questions
   useEffect(() => {
@@ -46,21 +56,36 @@ function QuizRunner() {
   const loadQuiz = async () => {
     try {
       setLoading(true);
+      console.log('[QuizRunner] Loading quiz...');
+      console.log('[QuizRunner] Topic:', topicName);
+      console.log('[QuizRunner] API_BASE_URL:', API_BASE_URL);
+      console.log('[QuizRunner] Fetching:', `${API_BASE_URL}/api/quizzes/generate`);
+
       const response = await fetch(`${API_BASE_URL}/api/quizzes/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic: topicName, numQuestions: 5 })
       });
 
+      console.log('[QuizRunner] Response status:', response.status);
+      console.log('[QuizRunner] Response ok:', response.ok);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[QuizRunner] Error response:', errorText);
         throw new Error('Failed to generate quiz');
       }
 
       const data = await response.json();
+      console.log('[QuizRunner] Received data:', data);
+      console.log('[QuizRunner] Session ID:', data.sessionId);
+      console.log('[QuizRunner] Questions count:', data.questions?.length || 0);
+
       setSessionId(data.sessionId);
       setQuestions(data.questions);
       setAnswers(new Array(data.questions.length).fill(null));
     } catch (err) {
+      console.error('[QuizRunner] Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -104,6 +129,12 @@ function QuizRunner() {
   const submitQuiz = async () => {
     try {
       setLoading(true);
+      console.log('[QuizRunner] Submitting quiz...');
+      console.log('[QuizRunner] Session ID:', sessionId);
+      console.log('[QuizRunner] Answers:', answers);
+      console.log('[QuizRunner] User ID:', currentUser?.uid || null);
+      console.log('[QuizRunner] Current User:', currentUser);
+      console.log('[QuizRunner] Fetching:', `${API_BASE_URL}/api/quizzes/submit`);
 
       const response = await fetch(`${API_BASE_URL}/api/quizzes/submit`, {
         method: 'POST',
@@ -111,21 +142,29 @@ function QuizRunner() {
         body: JSON.stringify({
           sessionId,
           answers,
-          userId: null // TODO: Add user ID from auth
+          userId: currentUser?.uid || null
         })
       });
 
+      console.log('[QuizRunner] Submit response status:', response.status);
+      console.log('[QuizRunner] Submit response ok:', response.ok);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[QuizRunner] Submit error response:', errorText);
         throw new Error('Failed to submit quiz');
       }
 
       const result = await response.json();
+      console.log('[QuizRunner] Submit result:', result);
+      console.log('[QuizRunner] Result ID:', result.resultId);
 
       // Navigate to results page
       navigate(`/quizzes/results/${result.resultId}`, {
         state: { result }
       });
     } catch (err) {
+      console.error('[QuizRunner] Submit error:', err);
       setError(err.message);
       setLoading(false);
     }

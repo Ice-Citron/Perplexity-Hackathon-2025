@@ -15,15 +15,27 @@ function QuizzesLanding() {
 
   const loadTrendingTopics = async () => {
     try {
+      setLoading(true);
+      console.log('[QuizzesLanding] Loading trending topics...');
+      console.log('[QuizzesLanding] API_BASE_URL:', API_BASE_URL);
+      console.log('[QuizzesLanding] Fetching:', `${API_BASE_URL}/api/quizzes/trending`);
+
       const response = await fetch(`${API_BASE_URL}/api/quizzes/trending`);
+      console.log('[QuizzesLanding] Response status:', response.status);
+      console.log('[QuizzesLanding] Response ok:', response.ok);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[QuizzesLanding] Error response:', errorText);
         throw new Error('Failed to load topics');
       }
 
       const data = await response.json();
-      setTopics(data.topics);
+      console.log('[QuizzesLanding] Received data:', data);
+      console.log('[QuizzesLanding] Topics count:', data.topics?.length || 0);
+      setTopics(data.topics || []);
     } catch (err) {
+      console.error('[QuizzesLanding] Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
