@@ -2,7 +2,14 @@ import React from 'react';
 import CoverageMeter from './CoverageMeter';
 
 function NewsCard({ article, onClick }) {
-  const preview = article.summaryMd?.substring(0, 200) + '...';
+  // Strip markdown headers and get clean preview text
+  const cleanText = article.summaryMd
+    ?.replace(/^#+\s+/gm, '') // Remove markdown headers (# ## ###)
+    .replace(/\*\*/g, '')      // Remove bold markers
+    .replace(/\*/g, '')        // Remove italic markers
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links, keep text
+    .trim();
+  const preview = cleanText?.substring(0, 200) + '...';
   const timeAgo = getTimeAgo(article.createdAt);
 
   return (
@@ -31,7 +38,7 @@ function NewsCard({ article, onClick }) {
             {article.categories.slice(0, 2).map((cat, idx) => (
               <span
                 key={idx}
-                className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
+                className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded"
               >
                 {cat}
               </span>
@@ -40,7 +47,7 @@ function NewsCard({ article, onClick }) {
         )}
 
         {/* Title */}
-        <h3 className="text-xl font-bold text-gray-900 mb-3 hover:text-blue-600 transition-colors">
+        <h3 className="text-xl font-bold text-gray-900 mb-3 hover:text-amber-700 transition-colors">
           {article.title}
         </h3>
 

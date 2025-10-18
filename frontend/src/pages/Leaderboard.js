@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AppHeader from '../components/AppHeader';
+import AuthModal from '../components/AuthModal';
+import { subscribeToAuthChanges } from '../services/authService';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -9,6 +12,15 @@ function Leaderboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     loadLeaderboard();
@@ -63,35 +75,25 @@ function Leaderboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{backgroundColor: '#fff2dc'}}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Leaderboard</h1>
-              <p className="mt-2 text-gray-600">Top quiz performers</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => navigate('/quizzes')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Take Quiz
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Home
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader user={currentUser} onSignInClick={() => setIsAuthModalOpen(true)} />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        mode="signin"
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-12">
+        {/* Page Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Leaderboard</h1>
+          <p className="text-gray-600">Top quiz performers across all topics</p>
+        </div>
+
         {/* Period Tabs */}
         <div className="bg-white rounded-lg shadow-sm p-2 mb-8 inline-flex">
           {['daily', 'weekly', 'monthly', 'alltime'].map((periodKey) => (
@@ -100,7 +102,7 @@ function Leaderboard() {
               onClick={() => setPeriod(periodKey)}
               className={`px-6 py-2 rounded-md font-medium transition-colors ${
                 period === periodKey
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-amber-700 text-white'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -113,7 +115,7 @@ function Leaderboard() {
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto"></div>
               <p className="mt-4 text-gray-600">Loading leaderboard...</p>
             </div>
           </div>
@@ -140,7 +142,7 @@ function Leaderboard() {
                 </p>
                 <button
                   onClick={() => navigate('/quizzes')}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-6 py-3 bg-amber-700 text-white rounded-lg hover:bg-amber-800"
                 >
                   Take a Quiz
                 </button>
@@ -149,7 +151,7 @@ function Leaderboard() {
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                 {/* Top 3 Podium (Desktop only) */}
                 {leaderboard.length >= 3 && (
-                  <div className="hidden md:block bg-gradient-to-r from-blue-50 to-indigo-50 p-8">
+                  <div className="hidden md:block bg-amber-50 p-8">
                     <div className="flex items-end justify-center gap-4 max-w-3xl mx-auto">
                       {/* 2nd Place */}
                       <div className="flex-1 text-center">
@@ -239,7 +241,7 @@ function Leaderboard() {
                       <div
                         key={user.uid}
                         className={`flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors ${
-                          rank <= 3 ? 'bg-blue-50/30' : ''
+                          rank <= 3 ? 'bg-amber-50/30' : ''
                         }`}
                       >
                         {/* Rank */}
@@ -256,7 +258,7 @@ function Leaderboard() {
                               className="w-12 h-12 rounded-full"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">
+                            <div className="w-12 h-12 rounded-full bg-amber-700 text-white flex items-center justify-center text-lg font-bold">
                               {user.displayName.charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -276,7 +278,7 @@ function Leaderboard() {
 
                         {/* Points */}
                         <div className="flex-shrink-0 text-right">
-                          <div className="text-2xl font-bold text-blue-600">
+                          <div className="text-2xl font-bold text-amber-700">
                             {user.points}
                           </div>
                           <div className="text-xs text-gray-500">points</div>
@@ -292,16 +294,16 @@ function Leaderboard() {
 
         {/* CTA Section */}
         {!loading && leaderboard.length > 0 && (
-          <div className="mt-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-center text-white shadow-xl">
+          <div className="mt-12 bg-amber-700 rounded-2xl p-8 text-center text-white shadow-xl">
             <h2 className="text-2xl font-bold mb-2">
               Want to climb the leaderboard?
             </h2>
-            <p className="text-blue-100 mb-6">
+            <p className="text-amber-100 mb-6">
               Take more quizzes and earn points to reach the top!
             </p>
             <button
               onClick={() => navigate('/quizzes')}
-              className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
+              className="px-8 py-3 bg-white text-amber-800 font-semibold rounded-lg hover:bg-amber-50 transition-colors"
             >
               Start a Quiz
             </button>

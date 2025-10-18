@@ -135,7 +135,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                   placeholder="Your name"
                   required
                 />
@@ -152,7 +152,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                 placeholder="you@example.com"
                 required
               />
@@ -169,7 +169,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -186,7 +186,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
                 <button
                   type="button"
                   onClick={() => switchMode('reset')}
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  className="text-sm text-amber-700 hover:text-amber-800"
                 >
                   Forgot password?
                 </button>
@@ -197,7 +197,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-2.5 px-4 bg-amber-700 text-white font-medium rounded-lg hover:bg-amber-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -280,7 +280,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
                 Don't have an account?{' '}
                 <button
                   onClick={() => switchMode('signup')}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-amber-700 hover:text-amber-800 font-medium"
                 >
                   Sign up
                 </button>
@@ -291,7 +291,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
                 Already have an account?{' '}
                 <button
                   onClick={() => switchMode('signin')}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-amber-700 hover:text-amber-800 font-medium"
                 >
                   Sign in
                 </button>
@@ -302,7 +302,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
                 Remember your password?{' '}
                 <button
                   onClick={() => switchMode('signin')}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-amber-700 hover:text-amber-800 font-medium"
                 >
                   Sign in
                 </button>

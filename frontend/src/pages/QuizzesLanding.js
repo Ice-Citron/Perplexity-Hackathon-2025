@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AppHeader from '../components/AppHeader';
+import AuthModal from '../components/AuthModal';
+import { subscribeToAuthChanges } from '../services/authService';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -8,6 +11,15 @@ function QuizzesLanding() {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     loadTrendingTopics();
@@ -47,53 +59,71 @@ function QuizzesLanding() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{backgroundColor: '#fff2dc'}}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Quizzes</h1>
-              <p className="mt-2 text-gray-600">Test your knowledge on trending topics</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => navigate('/leaderboard')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Leaderboard
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Home
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader user={currentUser} onSignInClick={() => setIsAuthModalOpen(true)} />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        mode="signin"
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* Info Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-semibold text-blue-900 mb-2">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Test Your Knowledge
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Take quizzes on trending topics, learn from credible sources, and compete with others on the leaderboard
+          </p>
+        </div>
+
+        {/* How It Works */}
+        <div className="bg-white border border-amber-200 rounded-2xl p-8 mb-12 shadow-lg">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
             How It Works
           </h2>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Choose a trending topic below</li>
-            <li>• Answer 5 questions with a 5-second timer each</li>
-            <li>• Earn points and climb the leaderboard</li>
-            <li>• Share your score with friends</li>
-          </ul>
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-white">1</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Choose a Topic</h3>
+              <p className="text-sm text-gray-600">Select from trending news topics below</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-white">2</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Answer Questions</h3>
+              <p className="text-sm text-gray-600">Test your knowledge with 5 timed questions</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-white">3</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Learn More</h3>
+              <p className="text-sm text-gray-600">Get feedback and links to related articles</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-white">4</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Compete & Share</h3>
+              <p className="text-sm text-gray-600">Climb the leaderboard and share your score</p>
+            </div>
+          </div>
         </div>
 
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto"></div>
               <p className="mt-4 text-gray-600">Loading quizzes...</p>
             </div>
           </div>
@@ -117,10 +147,10 @@ function QuizzesLanding() {
                 <button
                   key={topic.id}
                   onClick={() => handleTopicClick(topic)}
-                  className="group bg-white border border-gray-200 rounded-lg p-6 hover:border-blue-500 hover:shadow-lg transition-all text-left"
+                  className="group bg-white border border-gray-200 rounded-lg p-6 hover:border-amber-600 hover:shadow-lg transition-all text-left"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600">
+                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-amber-700">
                       {topic.name}
                     </h3>
                     <span className="flex items-center gap-1 text-sm text-gray-500">
@@ -134,10 +164,10 @@ function QuizzesLanding() {
                     8 questions • 10 seconds each
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="inline-block px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
+                    <span className="inline-block px-3 py-1 text-xs font-medium text-amber-800 bg-amber-100 rounded-full">
                       {topic.category}
                     </span>
-                    <span className="text-blue-600 group-hover:translate-x-1 transition-transform">
+                    <span className="text-amber-700 group-hover:translate-x-1 transition-transform">
                       →
                     </span>
                   </div>

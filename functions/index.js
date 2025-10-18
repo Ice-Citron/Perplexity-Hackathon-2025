@@ -92,21 +92,33 @@ app.get('/api/articles', async (req, res) => {
   try {
     const { category } = req.query;
 
-    let query = db.collection('articles')
-      .where('expireAt', '>', new Date().toISOString())
-      .orderBy('expireAt', 'desc')
-      .orderBy('createdAt', 'desc');
+    // Fetch all non-expired articles, sorted by createdAt
+    const query = db.collection('articles')
+      .orderBy('createdAt', 'desc')
+      .limit(100);
 
-    if (category) {
-      query = query.where('categories', 'array-contains', category);
-    }
+    const snapshot = await query.get();
 
-    const snapshot = await query.limit(50).get();
-
-    const articles = [];
+    let articles = [];
     snapshot.forEach(doc => {
       articles.push({ id: doc.id, ...doc.data() });
     });
+
+    // Filter out expired articles
+    const now = new Date().toISOString();
+    articles = articles.filter(a => !a.expireAt || a.expireAt > now);
+
+    // Filter by category in JavaScript if needed
+    if (category && category !== 'all') {
+      articles = articles.filter(a =>
+        a.categories && a.categories.some(c =>
+          c.toLowerCase().includes(category.toLowerCase())
+        )
+      );
+    }
+
+    // Limit to 50 articles
+    articles = articles.slice(0, 50);
 
     res.json({ articles });
 

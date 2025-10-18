@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AppHeader from '../components/AppHeader';
 import CategoryNav from '../components/CategoryNav';
 import NewsCard from '../components/NewsCard';
 import MarketTicker from '../components/MarketTicker';
 import AuthModal from '../components/AuthModal';
-import UserProfileWidget from '../components/UserProfileWidget';
 import { getArticles, generateArticle } from '../services/newsApi';
 import { subscribeToAuthChanges } from '../services/authService';
 
@@ -79,29 +79,9 @@ function NewsFeed() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{backgroundColor: '#fff2dc'}}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">
-              EduHub News
-            </h1>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Home
-              </button>
-              <UserProfileWidget
-                user={currentUser}
-                onSignInClick={() => setIsAuthModalOpen(true)}
-              />
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader user={currentUser} onSignInClick={() => setIsAuthModalOpen(true)} />
 
       {/* Auth Modal */}
       <AuthModal
@@ -135,13 +115,13 @@ function NewsFeed() {
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
               placeholder="What would you like to research? (e.g., 'Latest AI developments')"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent"
               disabled={generating}
             />
             <button
               type="submit"
               disabled={generating || !topicInput.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-amber-700 text-white rounded-lg font-medium hover:bg-amber-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {generating ? (
                 <span className="flex items-center gap-2">
@@ -169,7 +149,7 @@ function NewsFeed() {
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto"></div>
               <p className="mt-4 text-gray-600">Loading articles...</p>
             </div>
           </div>

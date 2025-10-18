@@ -9,7 +9,7 @@ function getPerplexityClient() {
 }
 
 /**
- * Fetch multiple relevant images for the article topic
+ * Fetch multiple relevant images for the article topic using Unsplash
  * @param {string} topicName - Topic to find images for
  * @param {Array} sources - Source articles
  * @returns {Promise<Array>} Array of image objects with url and caption
@@ -18,31 +18,66 @@ async function fetchArticleImages(topicName, sources) {
   try {
     const images = [];
 
-    // Use Lorem Picsum - reliable placeholder images
-    // Generate 3 images with different random seeds based on topic
-    const seed = topicName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    // Extract keywords from topic for better image search
+    const keywords = topicName
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(/\s+/)
+      .filter(word => word.length > 3)
+      .slice(0, 3)
+      .join(' ');
 
-    for (let i = 0; i < 3; i++) {
-      const imageUrl = `https://picsum.photos/seed/${seed + i}/1200/800`;
+    const unsplashQuery = keywords || topicName.split(' ').slice(0, 2).join(' ');
 
-      // Generate caption using topic context
-      let caption = '';
-      if (i === 0) {
-        caption = `Visual representation of ${topicName}`;
-      } else if (i === 1) {
-        caption = `Context and background on ${topicName}`;
+    try {
+      // Use Unsplash API for relevant images
+      const response = await fetch(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(unsplashQuery)}&per_page=3&orientation=landscape`,
+        {
+          headers: {
+            'Authorization': `Client-ID m4zXW4Z1yMi5AlKNfw0IMFxCMMYzuOyvgulGI0ddq6A`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.results && data.results.length > 0) {
+          for (let i = 0; i < Math.min(3, data.results.length); i++) {
+            const photo = data.results[i];
+            images.push({
+              url: photo.urls.regular,
+              caption: photo.description || photo.alt_description || `Image related to ${topicName}`,
+              alt: photo.alt_description || topicName,
+              credit: {
+                photographer: photo.user.name,
+                photographerUrl: photo.user.links.html,
+                source: 'Unsplash'
+              }
+            });
+          }
+          console.log(`📸 Fetched ${images.length} relevant images from Unsplash for "${unsplashQuery}"`);
+          return images;
+        }
       } else {
-        caption = `Related developments in ${topicName}`;
+        console.log(`Unsplash API error: ${response.status}`);
       }
+    } catch (unsplashError) {
+      console.log('Unsplash API error:', unsplashError.message);
+    }
 
+    // Fallback to seed-based placeholder if Unsplash fails
+    const seed = topicName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    for (let i = 0; i < 3; i++) {
       images.push({
-        url: imageUrl,
-        caption,
+        url: `https://picsum.photos/seed/${seed + i}/1200/800`,
+        caption: `Visual representation of ${topicName}`,
         alt: `Image ${i + 1}: ${topicName}`
       });
     }
 
-    console.log(`📸 Generated ${images.length} images for article`);
+    console.log(`📸 Using fallback placeholder images`);
     return images;
 
   } catch (error) {
@@ -69,7 +104,7 @@ async function generateBalancedArticle(topicName, category = 'General') {
 
   try {
     const completion = await client.chat.completions.create({
-      model: 'sonar',
+      model: 'sonar-pro',
       messages: [
         {
           role: 'system',
@@ -206,7 +241,7 @@ async function generateQuickSummary(query) {
 
   try {
     const completion = await client.chat.completions.create({
-      model: 'sonar',
+      model: 'sonar-pro',
       messages: [
         {
           role: 'user',

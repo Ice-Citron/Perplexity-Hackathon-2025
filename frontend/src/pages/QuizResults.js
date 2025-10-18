@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import AppHeader from '../components/AppHeader';
+import AuthModal from '../components/AuthModal';
+import { subscribeToAuthChanges } from '../services/authService';
+import { getArticles } from '../services/newsApi';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -14,6 +18,16 @@ function QuizResults() {
   const [loading, setLoading] = useState(!location.state?.result);
   const [error, setError] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [relatedArticles, setRelatedArticles] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!result && resultId) {
@@ -21,6 +35,13 @@ function QuizResults() {
       fetchResult();
     }
   }, [resultId, result]);
+
+  useEffect(() => {
+    if (result?.topic) {
+      // Fetch related articles based on quiz topic
+      fetchRelatedArticles();
+    }
+  }, [result?.topic]);
 
   const fetchResult = async () => {
     try {
@@ -35,6 +56,21 @@ function QuizResults() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRelatedArticles = async () => {
+    try {
+      const data = await getArticles();
+      // Filter articles related to quiz topic by matching keywords
+      const topicKeywords = result.topic.toLowerCase().split(' ');
+      const related = data.articles.filter(article => {
+        const articleText = `${article.title} ${article.summaryMd}`.toLowerCase();
+        return topicKeywords.some(keyword => keyword.length > 3 && articleText.includes(keyword));
+      }).slice(0, 3);
+      setRelatedArticles(related);
+    } catch (err) {
+      console.error('Failed to fetch related articles:', err);
     }
   };
 
@@ -74,7 +110,7 @@ function QuizResults() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#fff2dc'}}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading results...</p>
@@ -85,7 +121,7 @@ function QuizResults() {
 
   if (error || !result) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#fff2dc'}}>
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
           <div className="text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
@@ -107,21 +143,16 @@ function QuizResults() {
   const scoreMessage = getScoreMessage(result.percentage);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen" style={{backgroundColor: '#fff2dc'}}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Quiz Results</h1>
-            <button
-              onClick={() => navigate('/quizzes')}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Back to Quizzes
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader user={currentUser} onSignInClick={() => setIsAuthModalOpen(true)} />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        mode="signin"
+      />
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-6 py-12">
@@ -136,13 +167,13 @@ function QuizResults() {
           {/* Score Display */}
           <div className="flex items-center justify-center gap-8 mb-8">
             <div className="text-center">
-              <div className="text-5xl font-bold text-blue-600 mb-2">
+              <div className="text-5xl font-bold text-amber-700 mb-2">
                 {result.score}/{result.total}
               </div>
               <div className="text-sm text-gray-600">Correct Answers</div>
             </div>
             <div className="text-center">
-              <div className="text-5xl font-bold text-green-600 mb-2">
+              <div className="text-5xl font-bold text-emerald-700 mb-2">
                 {result.percentage}%
               </div>
               <div className="text-sm text-gray-600">Score</div>
@@ -152,7 +183,7 @@ function QuizResults() {
           {/* Progress Bar */}
           <div className="bg-gray-200 rounded-full h-4 mb-8">
             <div
-              className="bg-gradient-to-r from-blue-600 to-green-600 h-4 rounded-full transition-all duration-1000"
+              className="bg-amber-700 h-4 rounded-full transition-all duration-1000"
               style={{ width: `${result.percentage}%` }}
             ></div>
           </div>
@@ -255,7 +286,7 @@ function QuizResults() {
                   li: ({node, ...props}) => <li className="mb-1" {...props} />,
                   strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
                   em: ({node, ...props}) => <em className="italic" {...props} />,
-                  a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-700 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+                  a: ({node, ...props}) => <a className="text-amber-700 hover:text-amber-800 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
                   blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4" {...props} />,
                 }}
               >
@@ -273,7 +304,7 @@ function QuizResults() {
                         href={source.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 hover:underline text-sm"
+                        className="text-amber-700 hover:text-amber-800 hover:underline text-sm"
                       >
                         {idx + 1}. {source.title || source.url}
                       </a>
@@ -285,6 +316,54 @@ function QuizResults() {
           </div>
         )}
 
+        {/* Related Articles */}
+        {relatedArticles.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              📚 Learn More About This Topic
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Want to dive deeper? Check out these related news articles to expand your knowledge:
+            </p>
+            <div className="space-y-4">
+              {relatedArticles.map((article) => (
+                <div
+                  key={article.id}
+                  onClick={() => navigate(`/article/${article.id}`)}
+                  className="p-4 border border-gray-200 rounded-lg hover:border-amber-600 hover:bg-amber-50 cursor-pointer transition-all group"
+                >
+                  <div className="flex items-start gap-4">
+                    {article.imageUrl && (
+                      <img
+                        src={article.imageUrl}
+                        alt={article.title}
+                        className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-grow">
+                      <h4 className="font-semibold text-gray-900 group-hover:text-amber-700 mb-1">
+                        {article.title}
+                      </h4>
+                      <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                        {article.summaryMd?.substring(0, 150)}...
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{article.sources?.length || 0} sources</span>
+                        {article.categories && article.categories.length > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>{article.categories[0]}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
           <button
@@ -292,6 +371,12 @@ function QuizResults() {
             className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             Take Another Quiz
+          </button>
+          <button
+            onClick={() => navigate('/news')}
+            className="px-8 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Browse News
           </button>
           <button
             onClick={() => navigate('/leaderboard')}

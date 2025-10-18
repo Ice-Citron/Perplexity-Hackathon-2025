@@ -32,9 +32,9 @@ function ArticleDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#fff2dc'}}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading article...</p>
         </div>
       </div>
@@ -43,12 +43,12 @@ function ArticleDetail() {
 
   if (error || !article) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#fff2dc'}}>
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Article not found'}</p>
           <button
             onClick={() => navigate('/news')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800"
           >
             Back to News Feed
           </button>
@@ -58,7 +58,7 @@ function ArticleDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{backgroundColor: '#fff2dc'}}>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-6 py-4">
@@ -79,7 +79,7 @@ function ArticleDetail() {
             {article.categories.map((cat, idx) => (
               <span
                 key={idx}
-                className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded"
+                className="px-3 py-1 bg-amber-100 text-amber-800 text-sm font-medium rounded"
               >
                 {cat}
               </span>
@@ -146,8 +146,8 @@ function ArticleDetail() {
                         li: ({node, ...props}) => <li className="mb-1 leading-relaxed" {...props} />,
                         strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
                         em: ({node, ...props}) => <em className="italic" {...props} />,
-                        a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-700 hover:underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />,
-                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-500 pl-4 italic my-4 text-gray-600 bg-blue-50 py-2" {...props} />,
+                        a: ({node, ...props}) => <a className="text-amber-700 hover:text-amber-800 hover:underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />,
+                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-amber-600 pl-4 italic my-4 text-gray-600 bg-amber-50 py-2" {...props} />,
                         code: ({node, inline, ...props}) => inline ?
                           <code className="bg-gray-100 text-red-600 px-1.5 py-0.5 rounded text-sm font-mono" {...props} /> :
                           <code className="block bg-gray-100 p-4 rounded-lg text-sm font-mono overflow-x-auto my-4" {...props} />,
@@ -182,7 +182,7 @@ function ArticleDetail() {
                         />
                       </div>
                       {image.caption && (
-                        <figcaption className="mt-2 text-xs text-gray-600 italic border-l-4 border-blue-500 pl-3 py-1 bg-blue-50">
+                        <figcaption className="mt-2 text-xs text-gray-600 italic border-l-4 border-amber-600 pl-3 py-1 bg-amber-50">
                           "{image.caption}"
                         </figcaption>
                       )}
@@ -215,7 +215,7 @@ function ArticleDetail() {
                       href={source.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline font-medium"
+                      className="text-amber-700 hover:underline font-medium"
                     >
                       {source.title}
                     </a>
@@ -233,7 +233,7 @@ function ArticleDetail() {
         <ClaimsLens articleId={article.id} />
 
         {/* Take Quiz Button */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 p-6 text-center mt-8">
+        <div className="bg-white rounded-lg border border-amber-200 p-6 text-center mt-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Test Your Knowledge
           </h3>
@@ -242,7 +242,7 @@ function ArticleDetail() {
           </p>
           <button
             onClick={() => navigate(`/quizzes`)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+            className="px-6 py-3 bg-emerald-700 text-white rounded-lg font-medium hover:bg-emerald-800"
           >
             Start Quiz
           </button>

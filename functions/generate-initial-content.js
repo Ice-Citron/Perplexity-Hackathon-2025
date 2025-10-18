@@ -124,8 +124,8 @@ async function main() {
   console.log('This will populate your app with articles.\n');
 
   try {
-    // Generate 10 articles (you can change this number)
-    const articles = await generateInitialArticles(10);
+    // Generate 30 articles (you can change this number)
+    const articles = await generateInitialArticles(30);
 
     console.log('\n✨ All done! Your app should now have content.\n');
     console.log(`✅ Generated ${articles.length} articles successfully!\n`);

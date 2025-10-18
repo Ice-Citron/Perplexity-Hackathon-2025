@@ -31,7 +31,7 @@ function UserProfileWidget({ user, onSignInClick }) {
     return (
       <button
         onClick={onSignInClick}
-        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+        className="px-4 py-2 text-sm font-medium text-white bg-amber-700 rounded-lg hover:bg-amber-800 transition-colors"
       >
         Sign In
       </button>
@@ -62,7 +62,7 @@ function UserProfileWidget({ user, onSignInClick }) {
             className="w-9 h-9 rounded-full border-2 border-gray-200"
           />
         ) : (
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm border-2 border-gray-200">
+          <div className="w-9 h-9 rounded-full bg-amber-700 flex items-center justify-center text-white font-medium text-sm border-2 border-gray-200">
             {initials}
           </div>
         )}

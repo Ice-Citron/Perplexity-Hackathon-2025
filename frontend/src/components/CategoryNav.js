@@ -26,7 +26,7 @@ function CategoryNav({ activeCategory, onCategoryChange }) {
               flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors
               ${
                 activeCategory === category.id
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-amber-700 text-amber-700'
                   : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
               }
             `}
