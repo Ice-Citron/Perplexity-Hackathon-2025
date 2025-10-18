@@ -14,6 +14,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Market Data - public read, function-only write
+    match /marketData/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Topics - public read, function-only write
     match /topics/{topicId} {
       allow read: if true;

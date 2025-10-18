@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CategoryNav from '../components/CategoryNav';
 import NewsCard from '../components/NewsCard';
+import MarketTicker from '../components/MarketTicker';
+import AuthModal from '../components/AuthModal';
+import UserProfileWidget from '../components/UserProfileWidget';
 import { getArticles, generateArticle } from '../services/newsApi';
+import { subscribeToAuthChanges } from '../services/authService';
 
 function NewsFeed() {
   const navigate = useNavigate();
@@ -12,6 +16,17 @@ function NewsFeed() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [topicInput, setTopicInput] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Subscribe to auth state changes
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     loadArticles();
@@ -72,21 +87,37 @@ function NewsFeed() {
             <h1 className="text-2xl font-bold text-gray-900">
               EduHub News
             </h1>
-            <button
-              onClick={() => navigate('/')}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Home
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/')}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Home
+              </button>
+              <UserProfileWidget
+                user={currentUser}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+              />
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        mode="signin"
+      />
 
       {/* Category Navigation */}
       <CategoryNav
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
       />
+
+      {/* Market Ticker */}
+      <MarketTicker />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">

@@ -1,17 +1,12 @@
-// Only load dotenv in local development
-if (process.env.NODE_ENV !== 'production' && !process.env.FUNCTION_TARGET) {
-  require('dotenv').config();
-}
+require('dotenv').config();
 
-const {onRequest} = require('firebase-functions/v2/https');
+const {onRequest, onSchedule} = require('firebase-functions/v2/https');
+const {onSchedule: scheduledFunction} = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
-const {defineSecret} = require('firebase-functions/params');
 const { generateBalancedArticle, generateQuickSummary } = require('./services/articleGenerator');
-
-// Define secret
-const perplexityApiKey = defineSecret('PERPLEXITY_API_KEY');
+const { getMarketData } = require('./services/marketDataService');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -174,8 +169,50 @@ app.post('/api/summaries/generate', async (req, res) => {
   }
 });
 
-// Export the Express app as a Cloud Function with secret
-exports.api = onRequest(
-  {secrets: [perplexityApiKey]},
-  app
-);
+/**
+ * Get market data (cached, updated per-minute when users are active)
+ * GET /api/market-data
+ */
+app.get('/api/market-data', async (req, res) => {
+  try {
+    console.log('📊 Market data requested');
+
+    // Get market data with 1-minute cache for active users
+    const marketData = await getMarketData(false);
+
+    res.json({
+      data: marketData,
+      timestamp: Date.now()
+    });
+
+  } catch (error) {
+    console.error('Error fetching market data:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export the Express app as a Cloud Function
+exports.api = onRequest(app);
+
+/**
+ * Scheduled function to update market data hourly
+ * Runs every hour on the hour
+ */
+exports.updateMarketData = scheduledFunction({
+  schedule: 'every 1 hours',
+  timeZone: 'America/New_York' // NYSE timezone
+}, async (event) => {
+  try {
+    console.log('⏰ Scheduled market data update starting...');
+
+    // Fetch and cache market data
+    const marketData = await getMarketData(true);
+
+    console.log(`✅ Market data updated: ${marketData.length} items`);
+
+    return { success: true, itemCount: marketData.length };
+  } catch (error) {
+    console.error('❌ Scheduled market data update failed:', error);
+    throw error;
+  }
+});

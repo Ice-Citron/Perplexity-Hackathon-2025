@@ -17,7 +17,7 @@ const CATEGORIES = [
 function CategoryNav({ activeCategory, onCategoryChange }) {
   return (
     <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
-      <div className="flex overflow-x-auto scrollbar-hide">
+      <div className="flex justify-center overflow-x-auto scrollbar-hide">
         {CATEGORIES.map((category) => (
           <button
             key={category.id}
