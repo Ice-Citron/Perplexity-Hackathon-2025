@@ -131,7 +131,7 @@ function QuizzesLanding() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-4">
-                    5 questions • 5 seconds each
+                    8 questions • 10 seconds each
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="inline-block px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">

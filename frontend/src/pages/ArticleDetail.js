@@ -149,7 +149,26 @@ function ArticleDetail() {
           )}
 
           <div className="prose prose-lg max-w-none">
-            <ReactMarkdown>{article.summaryMd}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                h1: ({node, ...props}) => <h1 className="text-3xl font-bold mt-8 mb-4 text-gray-900" {...props} />,
+                h2: ({node, ...props}) => <h2 className="text-2xl font-bold mt-6 mb-3 text-gray-900" {...props} />,
+                h3: ({node, ...props}) => <h3 className="text-xl font-semibold mt-5 mb-2 text-gray-900" {...props} />,
+                p: ({node, ...props}) => <p className="mb-4 text-gray-700 leading-relaxed" {...props} />,
+                ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-4 space-y-2 text-gray-700" {...props} />,
+                ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-4 space-y-2 text-gray-700" {...props} />,
+                li: ({node, ...props}) => <li className="mb-1 leading-relaxed" {...props} />,
+                strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+                em: ({node, ...props}) => <em className="italic" {...props} />,
+                a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-700 hover:underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />,
+                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-500 pl-4 italic my-4 text-gray-600 bg-blue-50 py-2" {...props} />,
+                code: ({node, inline, ...props}) => inline ?
+                  <code className="bg-gray-100 text-red-600 px-1.5 py-0.5 rounded text-sm font-mono" {...props} /> :
+                  <code className="block bg-gray-100 p-4 rounded-lg text-sm font-mono overflow-x-auto my-4" {...props} />,
+              }}
+            >
+              {article.summaryMd}
+            </ReactMarkdown>
           </div>
         </article>
 

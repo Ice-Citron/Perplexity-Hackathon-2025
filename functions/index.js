@@ -499,7 +499,7 @@ exports.resetWeeklyLeaderboard = scheduledFunction({
  * Runs on the 1st of every month at midnight UTC
  */
 exports.resetMonthlyLeaderboard = scheduledFunction({
-  schedule: 'every month 1 00:00',
+  schedule: '0 0 1 * *',
   timeZone: 'UTC'
 }, async (event) => {
   try {

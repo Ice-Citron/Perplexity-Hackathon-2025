@@ -3,7 +3,22 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { subscribeToAuthChanges } from '../services/authService';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-const TIME_LIMIT = 5; // seconds per question
+const TIME_LIMIT = 10; // seconds per question
+
+const PHILOSOPHICAL_QUOTES = [
+  { quote: "The only true wisdom is in knowing you know nothing.", author: "Socrates" },
+  { quote: "It is the mark of an educated mind to be able to entertain a thought without accepting it.", author: "Aristotle" },
+  { quote: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
+  { quote: "The unexamined life is not worth living.", author: "Socrates" },
+  { quote: "Patience is bitter, but its fruit is sweet.", author: "Aristotle" },
+  { quote: "He who is not a good servant will not be a good master.", author: "Plato" },
+  { quote: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius" },
+  { quote: "It is not death that a man should fear, but he should fear never beginning to live.", author: "Marcus Aurelius" },
+  { quote: "The happiness of your life depends upon the quality of your thoughts.", author: "Marcus Aurelius" },
+  { quote: "While we are postponing, life speeds by.", author: "Seneca" },
+  { quote: "Luck is what happens when preparation meets opportunity.", author: "Seneca" },
+  { quote: "We suffer more often in imagination than in reality.", author: "Seneca" }
+];
 
 function QuizRunner() {
   const { topicId } = useParams();
@@ -14,6 +29,7 @@ function QuizRunner() {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -22,6 +38,7 @@ function QuizRunner() {
   const [answers, setAnswers] = useState([]);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [isAnswerLocked, setIsAnswerLocked] = useState(false);
+  const [randomQuote] = useState(() => PHILOSOPHICAL_QUOTES[Math.floor(Math.random() * PHILOSOPHICAL_QUOTES.length)]);
 
   // Subscribe to auth changes
   useEffect(() => {
@@ -64,7 +81,7 @@ function QuizRunner() {
       const response = await fetch(`${API_BASE_URL}/api/quizzes/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: topicName, numQuestions: 5 })
+        body: JSON.stringify({ topic: topicName, numQuestions: 8 })
       });
 
       console.log('[QuizRunner] Response status:', response.status);
@@ -128,7 +145,7 @@ function QuizRunner() {
 
   const submitQuiz = async () => {
     try {
-      setLoading(true);
+      setSubmitting(true);
       console.log('[QuizRunner] Submitting quiz...');
       console.log('[QuizRunner] Session ID:', sessionId);
       console.log('[QuizRunner] Answers:', answers);
@@ -166,7 +183,7 @@ function QuizRunner() {
     } catch (err) {
       console.error('[QuizRunner] Submit error:', err);
       setError(err.message);
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -176,6 +193,60 @@ function QuizRunner() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitting) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full">
+          <div className="text-center">
+            {/* Animated thinking icon */}
+            <div className="mb-6 relative inline-block">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div className="absolute -top-1 -right-1">
+                <span className="flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500"></span>
+                </span>
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Analyzing Your Performance...
+            </h2>
+            <p className="text-gray-600 mb-8">
+              Our AI is generating personalized feedback and insights for you
+            </p>
+
+            {/* Progress bar */}
+            <div className="bg-gray-200 rounded-full h-2 mb-8 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full animate-pulse" style={{ width: '66%' }}></div>
+            </div>
+
+            {/* Philosophical quote */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-l-4 border-blue-500">
+              <p className="text-gray-700 italic text-lg mb-3">
+                "{randomQuote.quote}"
+              </p>
+              <p className="text-gray-600 font-medium">
+                — {randomQuote.author}
+              </p>
+            </div>
+
+            {/* Loading dots */}
+            <div className="mt-6 flex justify-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
         </div>
       </div>
     );

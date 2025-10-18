@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -243,7 +244,23 @@ function QuizResults() {
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Learn More</h3>
             <div className="prose prose-sm max-w-none text-gray-700">
-              <div dangerouslySetInnerHTML={{ __html: result.summary.replace(/\n/g, '<br />') }} />
+              <ReactMarkdown
+                components={{
+                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-6 mb-4" {...props} />,
+                  h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-5 mb-3" {...props} />,
+                  h3: ({node, ...props}) => <h3 className="text-lg font-semibold mt-4 mb-2" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-3" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />,
+                  li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+                  em: ({node, ...props}) => <em className="italic" {...props} />,
+                  a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-700 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4" {...props} />,
+                }}
+              >
+                {result.summary}
+              </ReactMarkdown>
             </div>
 
             {result.sources && result.sources.length > 0 && (
