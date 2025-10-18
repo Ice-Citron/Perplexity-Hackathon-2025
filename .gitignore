@@ -1,5 +1,6 @@
 .DS_Store
 temporary-references/
+frontend/src/firebase.js
 
 # Logs
 logs

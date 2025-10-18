@@ -1,0 +1,291 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
+function QuizResults() {
+  const { resultId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Try to get result from navigation state first, otherwise fetch from API
+  const [result, setResult] = useState(location.state?.result || null);
+  const [loading, setLoading] = useState(!location.state?.result);
+  const [error, setError] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  useEffect(() => {
+    if (!result && resultId) {
+      // Fetch result from API if not in state
+      fetchResult();
+    }
+  }, [resultId, result]);
+
+  const fetchResult = async () => {
+    try {
+      // Note: This endpoint would need to be added to the backend
+      const response = await fetch(`${API_BASE_URL}/api/quizzes/results/${resultId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load results');
+      }
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getScoreEmoji = (percentage) => {
+    if (percentage === 100) return '🏆';
+    if (percentage >= 80) return '🌟';
+    if (percentage >= 60) return '👍';
+    if (percentage >= 40) return '💪';
+    return '📚';
+  };
+
+  const getScoreMessage = (percentage) => {
+    if (percentage === 100) return 'Perfect Score!';
+    if (percentage >= 80) return 'Excellent!';
+    if (percentage >= 60) return 'Good Job!';
+    if (percentage >= 40) return 'Keep Learning!';
+    return 'Nice Try!';
+  };
+
+  const handleShare = async (platform) => {
+    const shareText = `I scored ${result.score}/${result.total} (${result.percentage}%) on the ${result.topic} quiz! Can you beat my score?`;
+    const shareUrl = window.location.href;
+
+    if (platform === 'twitter') {
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+      window.open(twitterUrl, '_blank', 'width=550,height=420');
+    } else if (platform === 'copy') {
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading results...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !result) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
+          <div className="text-center">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
+            <p className="text-gray-600 mb-6">{error || 'Results not found'}</p>
+            <button
+              onClick={() => navigate('/quizzes')}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Back to Quizzes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const scoreEmoji = getScoreEmoji(result.percentage);
+  const scoreMessage = getScoreMessage(result.percentage);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900">Quiz Results</h1>
+            <button
+              onClick={() => navigate('/quizzes')}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Back to Quizzes
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-6 py-12">
+        {/* Score Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <div className="text-center mb-8">
+            <div className="text-7xl mb-4">{scoreEmoji}</div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">{scoreMessage}</h2>
+            <p className="text-gray-600">{result.topic}</p>
+          </div>
+
+          {/* Score Display */}
+          <div className="flex items-center justify-center gap-8 mb-8">
+            <div className="text-center">
+              <div className="text-5xl font-bold text-blue-600 mb-2">
+                {result.score}/{result.total}
+              </div>
+              <div className="text-sm text-gray-600">Correct Answers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-green-600 mb-2">
+                {result.percentage}%
+              </div>
+              <div className="text-sm text-gray-600">Score</div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="bg-gray-200 rounded-full h-4 mb-8">
+            <div
+              className="bg-gradient-to-r from-blue-600 to-green-600 h-4 rounded-full transition-all duration-1000"
+              style={{ width: `${result.percentage}%` }}
+            ></div>
+          </div>
+
+          {/* Share Buttons */}
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+              Share Your Score
+            </h3>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => handleShare('twitter')}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                </svg>
+                Share on Twitter
+              </button>
+              <button
+                onClick={() => handleShare('copy')}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                {copySuccess ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy Link
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Question Review */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Review Your Answers</h3>
+          <div className="space-y-6">
+            {result.results.map((item, index) => (
+              <div
+                key={index}
+                className={`p-6 rounded-lg border-2 ${
+                  item.isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                    item.isCorrect ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                  }`}>
+                    {item.isCorrect ? '✓' : '✗'}
+                  </div>
+                  <div className="flex-grow">
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      Question {index + 1}
+                    </h4>
+                    {item.userAnswer !== null && (
+                      <p className="text-sm text-gray-700 mb-2">
+                        <span className="font-medium">Your answer:</span>{' '}
+                        {item.userAnswer !== null ? `Option ${String.fromCharCode(65 + item.userAnswer)}` : 'No answer'}
+                      </p>
+                    )}
+                    {!item.isCorrect && (
+                      <p className="text-sm text-gray-700 mb-2">
+                        <span className="font-medium">Correct answer:</span>{' '}
+                        Option {String.fromCharCode(65 + item.correctAnswer)}
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-600 italic">
+                      {item.explanation}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary Section */}
+        {result.summary && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Learn More</h3>
+            <div className="prose prose-sm max-w-none text-gray-700">
+              <div dangerouslySetInnerHTML={{ __html: result.summary.replace(/\n/g, '<br />') }} />
+            </div>
+
+            {result.sources && result.sources.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-3">Additional Resources</h4>
+                <ul className="space-y-2">
+                  {result.sources.map((source, idx) => (
+                    <li key={idx}>
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 hover:underline text-sm"
+                      >
+                        {idx + 1}. {source.title || source.url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-4 justify-center">
+          <button
+            onClick={() => navigate('/quizzes')}
+            className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Take Another Quiz
+          </button>
+          <button
+            onClick={() => navigate('/leaderboard')}
+            className="px-8 py-3 bg-white text-gray-700 font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            View Leaderboard
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default QuizResults;
