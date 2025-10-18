@@ -13,6 +13,9 @@ const {
   generateQuizSummary,
   calculateScore
 } = require('./services/quizService');
+const { generateDailyQuizzes } = require('./services/dailyQuizGenerator');
+const { detectBreakingNews, generateBreakingNewsArticles } = require('./services/breakingNewsDetector');
+const { analyzeClaimsAcrossSources } = require('./services/claimsAnalyzer');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -33,7 +36,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    service: 'EduHub News API'
+    service: 'Really? API'
   });
 });
 
@@ -416,6 +419,126 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
+/**
+ * Get claims analysis for an article topic
+ * GET /api/articles/:id/claims
+ */
+app.get('/api/articles/:id/claims', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`📊 Fetching claims for article: ${id}`);
+
+    // Get article
+    const doc = await db.collection('articles').doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    const article = doc.data();
+
+    // Check if claims already exist
+    if (article.claims) {
+      console.log('✅ Returning cached claims');
+      return res.json(article.claims);
+    }
+
+    // Generate claims analysis
+    console.log('🔍 Generating claims analysis...');
+    const claims = await analyzeClaimsAcrossSources(article.topicName || article.title);
+
+    // Save claims to article
+    await db.collection('articles').doc(id).update({
+      claims,
+      claimsGeneratedAt: new Date().toISOString()
+    });
+
+    console.log('✅ Claims analysis complete');
+    res.json(claims);
+
+  } catch (error) {
+    console.error('❌ Error fetching claims:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get daily quizzes
+ * GET /api/quizzes/daily
+ */
+app.get('/api/quizzes/daily', async (req, res) => {
+  try {
+    console.log('📝 Fetching daily quizzes...');
+
+    // Get today's quizzes (created within last 24 hours)
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const snapshot = await db.collection('dailyQuizzes')
+      .where('createdAt', '>', cutoff)
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+
+    const quizzes = [];
+    snapshot.forEach(doc => {
+      quizzes.push({ id: doc.id, ...doc.data() });
+    });
+
+    console.log(`✅ Found ${quizzes.length} daily quizzes`);
+
+    res.json({ quizzes });
+
+  } catch (error) {
+    console.error('❌ Error fetching daily quizzes:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get breaking news
+ * GET /api/breaking-news
+ */
+app.get('/api/breaking-news', async (req, res) => {
+  try {
+    console.log('🚨 Fetching breaking news...');
+
+    const doc = await db.collection('breakingNews').doc('latest').get();
+
+    if (!doc.exists) {
+      return res.json({
+        hasBreakingNews: false,
+        events: [],
+        lastChecked: new Date().toISOString()
+      });
+    }
+
+    const data = doc.data();
+
+    // Check if data is recent (within last 2 hours)
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    const checkedAt = new Date(data.checkedAt || data.lastChecked).getTime();
+
+    if (checkedAt < twoHoursAgo) {
+      console.log('⚠️  Breaking news data is stale');
+      return res.json({
+        hasBreakingNews: false,
+        events: [],
+        lastChecked: data.checkedAt || data.lastChecked,
+        stale: true
+      });
+    }
+
+    console.log(`✅ Breaking news status: ${data.hasBreakingNews}`);
+
+    res.json(data);
+
+  } catch (error) {
+    console.error('❌ Error fetching breaking news:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Export the Express app as a Cloud Function
 exports.api = onRequest(app);
 
@@ -516,6 +639,145 @@ exports.resetMonthlyLeaderboard = scheduledFunction({
     return { success: true };
   } catch (error) {
     console.error('❌ Monthly leaderboard reset failed:', error);
+    throw error;
+  }
+});
+
+/**
+ * Scheduled function to generate daily quizzes from viral topics
+ * Runs every day at midnight UTC
+ */
+exports.generateDailyQuizzesScheduled = scheduledFunction({
+  schedule: 'every day 00:00',
+  timeZone: 'UTC'
+}, async (event) => {
+  try {
+    console.log('⏰ Generating daily quizzes from viral topics...');
+
+    const quizzes = await generateDailyQuizzes();
+
+    if (quizzes.length > 0) {
+      // Save quizzes to Firestore
+      const batch = db.batch();
+
+      for (const quiz of quizzes) {
+        const quizId = `daily-quiz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const quizRef = db.collection('dailyQuizzes').doc(quizId);
+        batch.set(quizRef, {
+          ...quiz,
+          id: quizId
+        });
+      }
+
+      await batch.commit();
+      console.log(`✅ Generated and saved ${quizzes.length} daily quizzes`);
+    } else {
+      console.log('⚠️  No quizzes generated');
+    }
+
+    return { success: true, quizzesGenerated: quizzes.length };
+  } catch (error) {
+    console.error('❌ Daily quiz generation failed:', error);
+    throw error;
+  }
+});
+
+/**
+ * Scheduled function to generate 30 articles every 12 hours
+ * Runs at 00:00 and 12:00 UTC
+ */
+exports.generateScheduledArticles = scheduledFunction({
+  schedule: 'every 12 hours',
+  timeZone: 'UTC'
+}, async (event) => {
+  try {
+    console.log('⏰ Generating scheduled articles...');
+
+    const topics = getTrendingTopics();
+    const selectedTopics = topics.slice(0, 30); // Get 30 topics
+    const articles = [];
+
+    for (const topic of selectedTopics) {
+      try {
+        console.log(`📰 Generating article for: ${topic.name}`);
+
+        const articleData = await generateBalancedArticle(topic.name, topic.category);
+
+        const article = {
+          ...articleData,
+          id: `article-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          topicName: topic.name,
+          createdAt: new Date().toISOString(),
+          expireAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+        };
+
+        // Save to Firestore
+        await db.collection('articles').doc(article.id).set(article);
+        articles.push(article);
+
+        console.log(`✅ Article saved: ${article.id}`);
+
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        console.error(`❌ Error generating article for ${topic.name}:`, error);
+      }
+    }
+
+    console.log(`✅ Generated ${articles.length} scheduled articles`);
+
+    return { success: true, articlesGenerated: articles.length };
+  } catch (error) {
+    console.error('❌ Scheduled article generation failed:', error);
+    throw error;
+  }
+});
+
+/**
+ * Scheduled function to detect and process breaking news
+ * Runs every hour
+ */
+exports.detectAndProcessBreakingNews = scheduledFunction({
+  schedule: 'every 1 hours',
+  timeZone: 'UTC'
+}, async (event) => {
+  try {
+    console.log('⏰ Checking for breaking news...');
+
+    const breakingNewsData = await detectBreakingNews();
+
+    // Save detection result
+    await db.collection('breakingNews').doc('latest').set({
+      ...breakingNewsData,
+      checkedAt: new Date().toISOString()
+    });
+
+    if (breakingNewsData.hasBreakingNews && breakingNewsData.events.length > 0) {
+      console.log(`🚨 BREAKING: ${breakingNewsData.events.length} events detected`);
+
+      // Generate articles for breaking news
+      const articles = await generateBreakingNewsArticles(breakingNewsData.events);
+
+      // Save articles to Firestore
+      for (const article of articles) {
+        await db.collection('articles').doc(article.id).set(article);
+        console.log(`✅ Breaking news article saved: ${article.id}`);
+      }
+
+      console.log(`✅ Generated ${articles.length} breaking news articles`);
+
+      return {
+        success: true,
+        hasBreakingNews: true,
+        eventsDetected: breakingNewsData.events.length,
+        articlesGenerated: articles.length
+      };
+    } else {
+      console.log('✅ No breaking news at this time');
+      return { success: true, hasBreakingNews: false };
+    }
+  } catch (error) {
+    console.error('❌ Breaking news detection failed:', error);
     throw error;
   }
 });

@@ -200,7 +200,7 @@ function QuizRunner() {
 
   if (submitting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-start justify-center pt-20 p-6">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full">
           <div className="text-center">
             {/* Animated thinking icon */}

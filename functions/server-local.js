@@ -9,6 +9,9 @@ const {
   generateQuizSummary,
   calculateScore
 } = require('./services/quizService');
+const { analyzeClaimsAcrossSources } = require('./services/claimsAnalyzer');
+const { generateDailyQuizzes } = require('./services/dailyQuizGenerator');
+const { detectBreakingNews } = require('./services/breakingNewsDetector');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -408,6 +411,134 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
+// GET /api/articles/:id/claims - Get claims analysis
+app.get('/api/articles/:id/claims', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`📊 Fetching claims for article: ${id}`);
+
+    // Get article
+    let article;
+    try {
+      const doc = await db.collection('articles').doc(id).get();
+      if (doc.exists) {
+        article = doc.data();
+      }
+    } catch (e) {
+      article = articles.get(id);
+    }
+
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    // Check if claims already exist
+    if (article.claims) {
+      console.log('✅ Returning cached claims');
+      return res.json(article.claims);
+    }
+
+    // Generate claims analysis
+    console.log('🔍 Generating claims analysis...');
+    const claims = await analyzeClaimsAcrossSources(article.topicName || article.title);
+
+    // Try to save claims to article
+    try {
+      await db.collection('articles').doc(id).update({
+        claims,
+        claimsGeneratedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Could not save claims to Firestore');
+    }
+
+    console.log('✅ Claims analysis complete');
+    res.json(claims);
+
+  } catch (error) {
+    console.error('❌ Error fetching claims:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/quizzes/daily - Get daily quizzes
+app.get('/api/quizzes/daily', async (req, res) => {
+  try {
+    console.log('📝 Fetching daily quizzes...');
+
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    try {
+      const snapshot = await db.collection('dailyQuizzes')
+        .where('createdAt', '>', cutoff)
+        .orderBy('createdAt', 'desc')
+        .limit(10)
+        .get();
+
+      const quizzes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ Found ${quizzes.length} daily quizzes`);
+      return res.json({ quizzes });
+    } catch (e) {
+      console.warn('No daily quizzes in Firestore, returning empty');
+      return res.json({ quizzes: [] });
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching daily quizzes:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/breaking-news - Get breaking news
+app.get('/api/breaking-news', async (req, res) => {
+  try {
+    console.log('🚨 Fetching breaking news...');
+
+    try {
+      const doc = await db.collection('breakingNews').doc('latest').get();
+
+      if (!doc.exists) {
+        return res.json({
+          hasBreakingNews: false,
+          events: [],
+          lastChecked: new Date().toISOString()
+        });
+      }
+
+      const data = doc.data();
+
+      // Check if data is recent (within last 2 hours)
+      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+      const checkedAt = new Date(data.checkedAt || data.lastChecked).getTime();
+
+      if (checkedAt < twoHoursAgo) {
+        console.log('⚠️  Breaking news data is stale');
+        return res.json({
+          hasBreakingNews: false,
+          events: [],
+          lastChecked: data.checkedAt || data.lastChecked,
+          stale: true
+        });
+      }
+
+      console.log(`✅ Breaking news status: ${data.hasBreakingNews}`);
+      res.json(data);
+
+    } catch (e) {
+      // No breaking news in database
+      return res.json({
+        hasBreakingNews: false,
+        events: [],
+        lastChecked: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching breaking news:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /health
 app.get('/health', (req, res) => {
   res.json({
@@ -418,7 +549,7 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 EduHub Local Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Really? Local Server running on http://localhost:${PORT}`);
   console.log(`✅ Perplexity API configured`);
   console.log(`\n📝 Available endpoints:`);
   console.log(`   POST /api/articles/generate - Generate balanced article`);

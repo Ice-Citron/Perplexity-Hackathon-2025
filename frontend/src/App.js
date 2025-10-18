@@ -7,6 +7,7 @@ import QuizzesLanding from './pages/QuizzesLanding';
 import QuizRunner from './pages/QuizRunner';
 import QuizResults from './pages/QuizResults';
 import Leaderboard from './pages/Leaderboard';
+import DailyQuizzes from './pages/DailyQuizzes';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/news" element={<NewsFeed />} />
         <Route path="/article/:id" element={<ArticleDetail />} />
         <Route path="/quizzes" element={<QuizzesLanding />} />
+        <Route path="/quizzes/daily" element={<DailyQuizzes />} />
         <Route path="/quizzes/:topicId" element={<QuizRunner />} />
         <Route path="/quizzes/results/:resultId" element={<QuizResults />} />
         <Route path="/leaderboard" element={<Leaderboard />} />

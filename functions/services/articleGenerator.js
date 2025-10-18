@@ -133,11 +133,44 @@ Write in markdown format. Use a clear headline at the top.`
     // Keep first image as imageUrl for backward compatibility with card display
     const imageUrl = images.length > 0 ? images[0].url : null;
 
-    // Estimate political balance based on sources
-    let coverage = { left: 33, center: 34, right: 33 };
-    if (sources.length >= 3) {
-      // Basic heuristic - assume balanced if we have diverse sources
-      coverage = { left: 30, center: 40, right: 30 };
+    // Calculate political balance based on actual sources
+    const { NEWS_SOURCES } = require('../constants/newsSources');
+
+    const sourceHostnames = sources.map(s => {
+      try {
+        return new URL(s.url).hostname.replace('www.', '').toLowerCase();
+      } catch {
+        return '';
+      }
+    }).filter(h => h);
+
+    let leftCount = 0;
+    let centerCount = 0;
+    let rightCount = 0;
+
+    sourceHostnames.forEach(hostname => {
+      // Check against known sources
+      const isLeft = NEWS_SOURCES.LEFT.some(s => hostname.includes(s.url.toLowerCase()) || s.url.toLowerCase().includes(hostname));
+      const isCenter = NEWS_SOURCES.CENTER.some(s => hostname.includes(s.url.toLowerCase()) || s.url.toLowerCase().includes(hostname));
+      const isRight = NEWS_SOURCES.RIGHT.some(s => hostname.includes(s.url.toLowerCase()) || s.url.toLowerCase().includes(hostname));
+
+      if (isLeft) leftCount++;
+      else if (isRight) rightCount++;
+      else if (isCenter) centerCount++;
+      else centerCount++; // Default unknown sources to center
+    });
+
+    const total = leftCount + centerCount + rightCount || 1;
+    const coverage = {
+      left: Math.round((leftCount / total) * 100),
+      center: Math.round((centerCount / total) * 100),
+      right: Math.round((rightCount / total) * 100)
+    };
+
+    // Ensure percentages add up to 100
+    const sum = coverage.left + coverage.center + coverage.right;
+    if (sum !== 100) {
+      coverage.center += (100 - sum);
     }
 
     const articleData = {

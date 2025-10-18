@@ -100,7 +100,7 @@ function AuthModal({ isOpen, onClose, mode: initialMode = 'signin' }) {
               {mode === 'reset' && 'Reset Password'}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              {mode === 'signin' && 'Welcome back to EduHub News'}
+              {mode === 'signin' && 'Welcome back to Really?'}
               {mode === 'signup' && 'Create your account to get started'}
               {mode === 'reset' && "We'll send you a password reset link"}
             </p>

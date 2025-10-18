@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthModal from '../components/AuthModal';
 import UserProfileWidget from '../components/UserProfileWidget';
+import BreakingNewsBanner from '../components/BreakingNewsBanner';
 import { subscribeToAuthChanges } from '../services/authService';
 
 function Home() {
@@ -35,17 +36,31 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Breaking News Banner */}
+      <BreakingNewsBanner />
+
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">EduHub</h1>
-              <p className="text-xs text-gray-600">Learn, Quiz, Compete</p>
+              <img
+                src="/logo.jpg"
+                alt="Really?"
+                className="h-10 w-10 object-contain"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Really?</h1>
+                <p className="text-xs text-gray-600">Learn, Quiz, Compete</p>
+              </div>
             </div>
-          </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/quizzes/daily')}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                Daily Quizzes
+              </button>
               <button
                 onClick={() => navigate('/leaderboard')}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
@@ -74,7 +89,7 @@ function Home() {
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Stay informed with balanced news coverage and sharpen your knowledge with interactive quizzes.
-            Learn, compete, and grow with EduHub.
+            Learn, compete, and grow with Really?
           </p>
         </div>
 
@@ -107,7 +122,7 @@ function Home() {
         {/* Stats Section */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-16">
           <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-            Why Choose EduHub?
+            Why Choose Really?
           </h3>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
@@ -204,7 +219,7 @@ function Home() {
               Powered by <span className="font-semibold">Perplexity AI</span> • Built for learning and growth
             </p>
             <p className="text-xs text-gray-500">
-              © 2025 EduHub. All content generated with AI assistance.
+              © 2025 Really? Perplexity London AI Hackathon
             </p>
           </div>
         </div>
