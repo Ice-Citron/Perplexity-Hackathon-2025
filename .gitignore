@@ -1,3 +1,6 @@
+.DS_Store
+temporary-references/
+
 # Logs
 logs
 *.log

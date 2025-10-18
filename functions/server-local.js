@@ -1,15 +1,27 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const Perplexity = require('@perplexity-ai/perplexity_ai');
-const axios = require('axios');
-const cheerio = require('cheerio');
+const admin = require('firebase-admin');
+const { generateBalancedArticle, generateQuickSummary } = require('./services/articleGenerator');
+
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp({
+    projectId: 'perplexity-news-3aba4'
+  });
+}
+
+const db = admin.firestore();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const PORT = 5001;
+
+// In-memory storage for local development (fallback)
+const articles = new Map();
+const topics = new Map();
 
 // Initialize Perplexity client
 function getPerplexityClient() {
@@ -143,13 +155,136 @@ app.post('/analyzeNews', async (req, res) => {
   }
 });
 
+// POST /api/articles/generate - Generate a balanced article
+app.post('/api/articles/generate', async (req, res) => {
+  try {
+    const { topicName, category } = req.body;
+
+    if (!topicName) {
+      return res.status(400).json({ error: 'topicName required' });
+    }
+
+    console.log(`📰 Generating article for: ${topicName}`);
+
+    const articleData = await generateBalancedArticle(topicName, category);
+
+    // Create article object
+    const articleId = `article-${Date.now()}`;
+    const article = {
+      id: articleId,
+      ...articleData,
+      topicName,
+      createdAt: new Date().toISOString(),
+      expireAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+    };
+
+    // Save to Firestore
+    try {
+      await db.collection('articles').doc(articleId).set(article);
+      console.log(`✅ Article saved to Firestore: ${articleId}`);
+    } catch (firestoreError) {
+      console.warn('⚠️  Firestore save failed, using in-memory storage:', firestoreError.message);
+      articles.set(articleId, article);
+    }
+
+    res.json(article);
+
+  } catch (error) {
+    console.error('Error generating article:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/articles - Get all articles
+app.get('/api/articles', async (req, res) => {
+  try {
+    const { category } = req.query;
+
+    // Try Firestore first
+    let result = [];
+    try {
+      let query = db.collection('articles').orderBy('createdAt', 'desc');
+
+      const snapshot = await query.get();
+      result = snapshot.docs.map(doc => doc.data());
+
+      // Filter by category if provided
+      if (category && category !== 'all') {
+        result = result.filter(a =>
+          a.categories && a.categories.some(c =>
+            c.toLowerCase().includes(category.toLowerCase())
+          )
+        );
+      }
+
+      console.log(`✅ Fetched ${result.length} articles from Firestore`);
+    } catch (firestoreError) {
+      console.warn('⚠️  Firestore fetch failed, using in-memory storage:', firestoreError.message);
+      result = Array.from(articles.values());
+
+      if (category && category !== 'all') {
+        result = result.filter(a =>
+          a.categories && a.categories.some(c =>
+            c.toLowerCase().includes(category.toLowerCase())
+          )
+        );
+      }
+
+      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    res.json({ articles: result, total: result.length });
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/articles/:id - Get specific article
+app.get('/api/articles/:id', async (req, res) => {
+  try {
+    const articleId = req.params.id;
+
+    // Try Firestore first
+    try {
+      const doc = await db.collection('articles').doc(articleId).get();
+
+      if (doc.exists) {
+        console.log(`✅ Fetched article ${articleId} from Firestore`);
+        return res.json(doc.data());
+      }
+    } catch (firestoreError) {
+      console.warn('⚠️  Firestore fetch failed, using in-memory storage:', firestoreError.message);
+    }
+
+    // Fallback to in-memory
+    const article = articles.get(articleId);
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    res.json(article);
+  } catch (error) {
+    console.error('Error fetching article:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /health
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    articles: articles.size
+  });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Local development server running on http://localhost:${PORT}`);
+  console.log(`🚀 EduHub Local Server running on http://localhost:${PORT}`);
   console.log(`✅ Perplexity API configured`);
-  console.log(`\n📝 Test with: curl -X POST http://localhost:${PORT}/analyzeNews -H "Content-Type: application/json" -d '{"input":"OpenAI launches GPT-5","type":"headline"}'\n`);
+  console.log(`\n📝 Available endpoints:`);
+  console.log(`   POST /api/articles/generate - Generate balanced article`);
+  console.log(`   GET  /api/articles - List all articles`);
+  console.log(`   GET  /api/articles/:id - Get specific article`);
+  console.log(`   GET  /health - Health check\n`);
 });

@@ -1,16 +1,62 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write for analysis results cache
-    match /analyses/{analysisId} {
+
+    // Articles - public read, function-only write
+    match /articles/{articleId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false; // Only Cloud Functions can write
     }
 
-    // Allow read/write for logs
-    match /logs/{logId} {
+    // Summaries - public read, function-only write
+    match /summaries/{summaryId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if false;
+    }
+
+    // Topics - public read, function-only write
+    match /topics/{topicId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Quizzes - public read, function-only write
+    match /quizzes/{quizId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Leaderboards - public read, function-only write
+    match /leaderboards/{period} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // User profiles - own data only
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // User watchlist
+      match /watchlist/{topicId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // User quiz runs
+      match /quizRuns/{runId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Legacy collections (keep for now)
+    match /analyses/{analysisId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /logs/{logId} {
+      allow read: if false;
+      allow write: if false;
     }
   }
 }
