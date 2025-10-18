@@ -2,6 +2,8 @@
 
 **Claim-level comparison of how multiple outlets report the same story**
 
+Live Link: https://perplexity-news-3aba4.web.app/
+
 Built for Perplexity Hackathon 2025 - A news analysis tool that goes beyond simple aggregation to expose editorial choices, framing differences, and factual discrepancies across outlets.
 
 ## Problem
