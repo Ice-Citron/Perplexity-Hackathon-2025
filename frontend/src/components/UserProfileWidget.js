@@ -114,13 +114,6 @@ function UserProfileWidget({ user, onSignInClick }) {
               My Profile
             </a>
             <a
-              href="/watchlist"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              onClick={() => setIsDropdownOpen(false)}
-            >
-              My Watchlist
-            </a>
-            <a
               href="/quiz-history"
               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
               onClick={() => setIsDropdownOpen(false)}

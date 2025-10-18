@@ -333,6 +333,24 @@ app.post('/api/quizzes/submit', async (req, res) => {
     const resultRef = await db.collection('quizResults').add(result);
     console.log('[API] Result saved:', resultRef.id);
 
+    // Save to user's quiz history if userId provided
+    if (userId) {
+      try {
+        console.log('[API] Saving quiz to user history:', userId);
+        await db.collection('users').doc(userId).collection('quizHistory').add({
+          topic: sessionData.topic,
+          score: scoreData.score,
+          total: scoreData.total,
+          percentage: scoreData.percentage,
+          resultId: resultRef.id,
+          completedAt: new Date().toISOString()
+        });
+        console.log('[API] ✅ Quiz saved to user history');
+      } catch (historyError) {
+        console.error('[API] ⚠️  Could not save to quiz history:', historyError);
+      }
+    }
+
     // Update leaderboard if userId is provided
     if (userId) {
       try {
@@ -427,6 +445,82 @@ app.get('/api/leaderboard', async (req, res) => {
 
   } catch (error) {
     console.error('[API] Error fetching leaderboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get user stats
+ * GET /api/users/:userId/stats
+ */
+app.get('/api/users/:userId/stats', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log('[API] GET /api/users/:userId/stats - User:', userId);
+
+    // Get user's quiz history
+    const historySnapshot = await db.collection('users').doc(userId).collection('quizHistory')
+      .orderBy('completedAt', 'desc')
+      .get();
+
+    const quizHistory = [];
+    historySnapshot.forEach(doc => {
+      quizHistory.push(doc.data());
+    });
+
+    // Calculate stats
+    const quizzesTaken = quizHistory.length;
+    let totalPoints = 0;
+    let totalPercentage = 0;
+
+    quizHistory.forEach(quiz => {
+      totalPoints += (quiz.score * 10); // 10 points per correct answer
+      totalPercentage += quiz.percentage;
+    });
+
+    const averageScore = quizzesTaken > 0 ? Math.round(totalPercentage / quizzesTaken) : 0;
+
+    // Get streak (simplified - just check if quiz taken today)
+    const today = new Date().toISOString().split('T')[0];
+    const todayQuizzes = quizHistory.filter(q => q.completedAt.startsWith(today));
+    const streak = todayQuizzes.length > 0 ? 1 : 0; // Simplified streak calculation
+
+    res.json({
+      points: totalPoints,
+      quizzesTaken,
+      averageScore,
+      streak
+    });
+
+  } catch (error) {
+    console.error('[API] Error fetching user stats:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get user quiz history
+ * GET /api/users/:userId/quiz-history
+ */
+app.get('/api/users/:userId/quiz-history', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log('[API] GET /api/users/:userId/quiz-history - User:', userId);
+
+    const historySnapshot = await db.collection('users').doc(userId).collection('quizHistory')
+      .orderBy('completedAt', 'desc')
+      .limit(100)
+      .get();
+
+    const history = [];
+    historySnapshot.forEach(doc => {
+      history.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.json({ history });
+
+  } catch (error) {
+    console.error('[API] Error fetching quiz history:', error);
     res.status(500).json({ error: error.message });
   }
 });
